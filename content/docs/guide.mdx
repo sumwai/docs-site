@@ -1,0 +1,53 @@
+---
+title: 写第一篇文档
+description: 页面格式、frontmatter 与侧边栏顺序
+---
+
+页面就是 `.mdx` 文件，放在 `content/docs/` 下。文件名决定地址：`content/docs/guide.mdx` 对应 `/docs/guide`，`content/docs/setup/index.mdx` 对应 `/docs/setup`。
+
+## frontmatter
+
+```mdx
+---
+title: 页面标题
+description: 一句话说明，显示在标题下方并写入 meta description
+---
+```
+
+`title` 必填，`description` 可选。
+
+## 侧边栏
+
+顺序与分组写在同级目录的 `meta.json`：
+
+```json
+{
+  "title": "文档",
+  "pages": ["index", "---指南---", "guide"]
+}
+```
+
+| 写法 | 效果 |
+| --- | --- |
+| `index` | 目录首页，地址就是该目录 |
+| `guide` | 页面或子目录 |
+| `---指南---` | 分隔线标签 |
+
+## 正文
+
+支持标准 Markdown、GFM 表格与 Fumadocs 内置组件：
+
+```tsx
+<Cards>
+  <Card title="示例" href="/docs/guide">卡片说明</Card>
+</Cards>
+```
+
+代码块高亮标记：
+
+```ts
+const before = 1; // [!code --]
+const after = 2; // [!code ++]
+```
+
+内容仓库不能 `import` 站点源码里的模块；组件由站点统一注册。

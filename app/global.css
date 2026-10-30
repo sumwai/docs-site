@@ -1,0 +1,89 @@
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+
+html {
+  scrollbar-gutter: stable;
+}
+
+/* 字体全部走本机已装的字体，不发外网请求。
+   Maple Mono NF CN 自带中文与 Nerd Font 图标，代码块里的中文不会回落到比例字体。 */
+:root {
+  --font-sans:
+    system-ui, -apple-system, 'Segoe UI', 'Noto Sans CJK SC', 'Source Han Sans SC',
+    'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono:
+    'Maple Mono NF CN', 'JetBrains Maple Mono', 'Maple Mono', ui-monospace, 'JetBrains Mono',
+    'Noto Sans Mono CJK SC', monospace;
+}
+
+body {
+  font-family: var(--font-sans);
+}
+
+/* 代码里的中文单独换一支比例字体：@font-face 的 unicode-range 只认领中日韩区间，
+   ASCII 与符号仍落到下面的等宽字体。本机缺字体时自动回落到等宽栈里的中文等宽字。 */
+@font-face {
+  font-family: 'Code CJK';
+  src:
+    local('MiSans'),
+    local('Noto Sans CJK SC'),
+    local('Source Han Sans SC'),
+    local('PingFang SC');
+  unicode-range:
+    U+3000-303F, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FF00-FFEF;
+}
+
+/* 行内代码、代码块、快捷键一律走等宽字体栈；
+   行高与字号略微收紧，Maple 的字符高度比多数等宽字体大。 */
+code,
+kbd,
+pre,
+samp {
+  font-family: 'Code CJK', var(--font-mono);
+}
+
+pre {
+  line-height: 1.65;
+}
+
+/* 行内代码略微缩小一点不抢正文，代码块保持原尺寸，再小就看不清了。 */
+code {
+  font-size: 0.92em;
+}
+
+pre code {
+  font-size: 1em;
+}
+
+/* 表格的横向滚动由 Fumadocs 自带的 overflow-auto 外层容器处理，
+   这里不要改 table 的 display，否则列宽会按内容挤在一起。
+   宽度按内容算、下限铺满容器：装得下时就是满宽，超宽时由外层横向滚动，
+   而不是把列压到每行一个字。 */
+.prose table {
+  width: max-content;
+  min-width: 100%;
+}
+
+/* 代码块的复制按钮与代码第一行垂直居中。
+   figure 上内边距 14px、行高 21.45px，按钮高 26px，算下来按钮距顶 12px。 */
+.prose figure > div.absolute {
+  top: 0.75rem;
+}
+
+/* 中文正文的默认行高偏紧，段落与列表统一放到 1.75；
+   标题收紧字距，避免双字标题看起来松散。 */
+.prose {
+  line-height: 1.75;
+  letter-spacing: 0.01em;
+}
+
+.prose :where(h1, h2, h3, h4) {
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+}
+
+html > body[data-scroll-locked] {
+  margin-right: 0px !important;
+  --removed-body-scroll-bar-size: 0px !important;
+}
