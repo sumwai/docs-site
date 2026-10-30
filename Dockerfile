@@ -10,11 +10,20 @@ FROM node:22-alpine AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# 内容与站点分仓时，构建前把内容拉进 content/docs。
+# 内容与站点分仓时，构建前把内容拉进 content/docs；未指定来源时用自带的 content.example/docs。
 # 仓库公开且无 token 时限流也会拦，正式构建建议总是带上 secret。
 ARG DOCS_CONTENT_REPO
 ARG DOCS_CONTENT_REF=main
 ARG DOCS_CONTENT_SUBDIR=content/docs
+# 品牌参数在构建时写进页面文案，空值退回 site.config.ts 的默认值。
+ARG DOCS_SITE_NAME
+ARG DOCS_SITE_TAGLINE
+ARG DOCS_SITE_DESCRIPTION
+ARG DOCS_SITE_LOCALE
+ENV DOCS_SITE_NAME=${DOCS_SITE_NAME} \
+    DOCS_SITE_TAGLINE=${DOCS_SITE_TAGLINE} \
+    DOCS_SITE_DESCRIPTION=${DOCS_SITE_DESCRIPTION} \
+    DOCS_SITE_LOCALE=${DOCS_SITE_LOCALE}
 RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN,required=false \
     DOCS_CONTENT_REPO="$DOCS_CONTENT_REPO" \
     DOCS_CONTENT_REF="$DOCS_CONTENT_REF" \

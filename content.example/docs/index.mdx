@@ -3,7 +3,7 @@ title: 概览
 description: 可复用的 Fumadocs 文档站模板
 ---
 
-这是模板自带的示例内容。换成自己的文档时，替换 `content/docs/` 下的页面，或在构建前设置内容仓库，让 `scripts/fetch-content.mjs` 从 GitHub 拉取。
+这是模板自带的示例内容，放在 `content.example/docs/`。构建用的 `content/docs/` 由内容来源同步而来，不入库；没有设置内容来源时，同步脚本把这份示例复制进去。
 
 站点负责渲染：侧边栏、站内搜索、Markdown 原文、`llms.txt` 与 OG 图都由框架提供；内容只写 Markdown 与 frontmatter。
 
@@ -17,6 +17,6 @@ description: 可复用的 Fumadocs 文档站模板
 
 ## 下一步
 
-- 改站点名称与语言：编辑根目录的 `site.config.ts`。
+- 改站点名称与语言：用 `DOCS_SITE_NAME`、`DOCS_SITE_TAGLINE`、`DOCS_SITE_DESCRIPTION`、`DOCS_SITE_LOCALE` 覆盖，见仓库 README 的「站点品牌」。
 - 写页面：见[写第一篇文档](/docs/guide)。
 - 内容单独成仓：见仓库 README 的「内容来源」。

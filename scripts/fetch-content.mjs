@@ -1,11 +1,12 @@
 // 把文档内容同步到 content/docs：内容与站点框架分仓时，在构建前跑一次。
 //
 // 三种来源，按优先级：
-//   1. DOCS_CONTENT_DIR：本地已 checkout 的内容仓库（CI 里两个仓库并排 checkout 时用）；
+//   1. DOCS_CONTENT_DIR：本地已 checkout 的内容目录（CI 里两个仓库并排 checkout 时用）；
 //   2. DOCS_CONTENT_REPO + DOCS_CONTENT_REF：从 GitHub 拉 tarball（没有本地副本时用）；
-//   3. 两者都没设：什么都不做，直接用仓库里现有的 content/docs（本地开发）。
+//   3. 两者都没设：沿用现有的 content/docs；它不存在时用仓库自带的 content.example/docs。
 //
-// 内容仓库的目录约定：DOCS_CONTENT_SUBDIR，默认 content/docs，里面必须有 meta.json 与 index.mdx。
+// content/docs 是构建产物，不入库；内容仓库的目录约定是 DOCS_CONTENT_SUBDIR，
+// 默认 content/docs，里面必须有 meta.json 与至少一个 .mdx。
 // GITHUB_TOKEN 只在仓库私有或触发限流时需要，值不打印。
 
 import { execFile } from 'node:child_process';
@@ -16,6 +17,7 @@ import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 
+const exampleSource = 'content.example/docs';
 const dest = path.resolve(process.env.DOCS_CONTENT_DEST?.trim() || 'content/docs');
 const localSource = process.env.DOCS_CONTENT_DIR?.trim();
 const repo = process.env.DOCS_CONTENT_REPO?.trim();
@@ -102,12 +104,16 @@ try {
   } else if (repo) {
     await fromGitHub();
   } else {
-    if (!(await exists(path.join(dest, 'meta.json')))) {
+    if (await exists(path.join(dest, 'meta.json'))) {
+      console.log('未设置 DOCS_CONTENT_DIR 与 DOCS_CONTENT_REPO，沿用现有 content/docs');
+    } else if (await exists(path.join(exampleSource, 'meta.json'))) {
+      console.log(`未设置内容来源，用仓库自带的 ${exampleSource}`);
+      await replaceWith(exampleSource);
+    } else {
       throw new Error(
-        '未设置 DOCS_CONTENT_DIR 与 DOCS_CONTENT_REPO，且 content/docs 里没有 meta.json：设置内容来源，或把内容放进 content/docs',
+        '未设置 DOCS_CONTENT_DIR 与 DOCS_CONTENT_REPO，content/docs 与 content.example/docs 都没有内容：设置内容来源',
       );
     }
-    console.log('未设置 DOCS_CONTENT_DIR 与 DOCS_CONTENT_REPO，使用现有 content/docs');
   }
 } catch (err) {
   console.error(`同步文档内容失败：${err.message}`);

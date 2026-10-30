@@ -1,5 +1,7 @@
 node_modules
 .next
 .next-build
+# 构建产物：由同步脚本或 Docker 构建阶段生成
+content/docs
 .git
 *.log

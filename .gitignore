@@ -4,6 +4,9 @@
 # generated content
 .source
 
+# 构建前由内容仓库同步进来，或从 content.example 复制，不入库
+/content/docs
+
 # test & build
 /coverage
 /.next/
@@ -20,6 +23,9 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# 工具会话状态
+/.pi/tasks/
 
 # others
 .env*.local

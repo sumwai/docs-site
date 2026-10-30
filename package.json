@@ -5,6 +5,7 @@
   "description": "A reusable Fumadocs documentation site with optional external content",
   "scripts": {
     "dev": "next dev",
+    "predev": "node scripts/fetch-content.mjs",
     "build": "DOCS_DIST_DIR=.next-build next build",
     "start": "DOCS_DIST_DIR=.next-build next start",
     "content": "node scripts/fetch-content.mjs",

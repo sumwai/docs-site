@@ -11,22 +11,26 @@ npm run start      # 以生产模式启动
 
 开发服务器用 `.next`，构建与生产启动用 `.next-build`，两者可以同时运行。`next.config.mjs` 通过 `DOCS_DIST_DIR` 选择输出目录，`build` 与 `start` 已经固定为 `.next-build`。
 
-## 站点配置
+## 站点品牌
 
-品牌、首页文案与语言在根目录 `site.config.ts`：
+品牌、首页文案与语言由环境变量传入，默认值在根目录 `site.config.ts`；空值或未设置都退回默认值。
 
-| 字段 | 作用 |
+| 变量 | 作用 |
 | --- | --- |
-| `name` | 浏览器标题、导航标题、OG 图、`llms.txt` 与 `robots.txt` 头部 |
-| `tagline` | 首页标题上方的小字，留空不显示 |
-| `description` | 首页正文与 meta description |
-| `locale` | `<html lang>` 与内置 UI 文案；以 `zh` 开头时启用中文覆盖，其余用 Fumadocs 默认英文 |
+| `DOCS_SITE_NAME` | 浏览器标题、导航标题、OG 图、`llms.txt` 与 `robots.txt` 头部 |
+| `DOCS_SITE_TAGLINE` | 首页标题上方的小字 |
+| `DOCS_SITE_DESCRIPTION` | 首页正文与 meta description |
+| `DOCS_SITE_LOCALE` | `<html lang>` 与内置 UI 文案；以 `zh` 开头时启用中文覆盖，其余用 Fumadocs 默认英文 |
 
-首页、导航、站点地图与 Agent 入口都读这个文件，不在页面里写死站点名。
+首页、导航、站点地图与 Agent 入口都读这些值，不在页面里写死站点名。`DOCS_SITE_NAME`、`DOCS_SITE_TAGLINE`、`DOCS_SITE_DESCRIPTION` 在构建时决定静态页面的文案，`robots.txt` 与 `llms.txt` 按请求生成，运行阶段还会再读一次，所以构建与运行要给同一组值。
+
+内容仓库只需要提供这四个值，不必复制 `site.config.ts`。
 
 ## 内容
 
-内容默认在 `content/docs/`，仓库自带两页示例。页面是普通 Markdown / MDX，frontmatter 至少写 `title`，可选 `description`；侧边栏顺序与分隔线写在各级 `meta.json`。
+构建用的内容在 `content/docs/`，它不入库，由同步脚本生成。仓库自带的示例内容在 `content.example/docs/`，结构就是内容仓库该有的样子：`meta.json` 加两个页面。
+
+页面是普通 Markdown / MDX，frontmatter 至少写 `title`，可选 `description`；侧边栏顺序与分隔线写在各级 `meta.json`。
 
 正文可用标准 Markdown、GFM 表格，以及 Fumadocs 内置的 `<Cards>` / `<Card>` 与代码块高亮标记（`// [!code ++]`、`// [!code --]`）。内容不能 `import` 站点源码里的模块。
 
@@ -43,7 +47,7 @@ npm run start      # 以生产模式启动
 | `GITHUB_TOKEN` | 私有仓库或限流时需要；只进请求头，不打印 |
 | `DOCS_CONTENT_DEST` | 同步到哪，默认 `content/docs`；用于测试或特殊构建 |
 
-两个来源都没设置时，脚本检查现有 `content/docs` 后直接使用，本地开发不需要网络。
+两个来源都没设置时，脚本沿用现有的 `content/docs`；它不存在时把 `content.example/docs` 复制进去，因此新 clone 直接 `npm run dev` 也能起。开发服务器不会在改动内容仓库后自动重同步，改完内容仓库要再跑一次 `npm run content`。
 
 ```bash
 npm run content    # 按环境变量同步
@@ -60,10 +64,17 @@ npm run build      # 普通构建
 
 ### Docker
 
-构建阶段拉内容并完成 SSG，运行阶段只带 `.next-build` 与生产依赖。内容更新需要重新构建镜像。
+构建阶段拉内容并完成 SSG，运行阶段只带 `.next-build` 与生产依赖。内容更新需要重新构建镜像。品牌走构建参数，构建时写进静态页面的标题与首页文案：
 
 ```bash
 docker build -t docs-site .
+
+docker build \
+  --build-arg DOCS_SITE_NAME=<站点名> \
+  --build-arg DOCS_SITE_TAGLINE=<首页小字> \
+  --build-arg DOCS_SITE_DESCRIPTION=<首页正文> \
+  --build-arg DOCS_SITE_LOCALE=zh-CN \
+  -t docs-site .
 ```
 
 私有内容仓库用 BuildKit secret，token 不进入镜像层：
@@ -86,8 +97,11 @@ rm -f /tmp/gh-token
 docker run -d --name docs-site --restart unless-stopped \
   -p 127.0.0.1:3000:3000 \
   -e NEXT_PUBLIC_SITE_URL=https://docs.example.com \
+  -e DOCS_SITE_NAME=<站点名> \
   docs-site
 ```
+
+`DOCS_SITE_NAME` 等在运行阶段影响 `robots.txt` 与 `llms.txt` 的头部，要与构建参数一致。
 
 只把端口绑在回环地址，由反向代理终止 TLS：
 
@@ -117,6 +131,7 @@ After=network.target
 WorkingDirectory=/path/to/docs-site
 Environment=NODE_ENV=production
 Environment=NEXT_PUBLIC_SITE_URL=https://docs.example.com
+Environment=DOCS_SITE_NAME=<站点名>
 ExecStart=/usr/bin/node node_modules/.bin/next start -H 127.0.0.1 -p 3000
 Restart=on-failure
 
@@ -149,8 +164,9 @@ WantedBy=multi-user.target
 
 | 路径 | 作用 |
 | --- | --- |
-| `site.config.ts` | 站点名称、首页文案、语言 |
-| `content/docs/` | 内容，可整体替换或从外部仓库同步 |
+| `site.config.ts` | 品牌与语言的默认值，可被 `DOCS_SITE_*` 环境变量覆盖 |
+| `content.example/docs/` | 示例内容，结构等同于一个内容仓库 |
+| `content/docs/` | 构建用的内容，由同步脚本生成，不入库 |
 | `app/(home)/page.tsx` | 首页 |
 | `app/docs/[[...slug]]/page.tsx` | 文档页渲染 |
 | `app/docs/layout.tsx` | 侧边栏与页面布局 |
@@ -167,9 +183,11 @@ WantedBy=multi-user.target
 
 ## 换一个项目
 
-1. 改 `site.config.ts` 的 `name`、`tagline`、`description`、`locale`。
-2. 替换 `content/docs/`，或设置 `DOCS_CONTENT_REPO` 指向内容仓库。
+1. 用 `DOCS_SITE_NAME`、`DOCS_SITE_TAGLINE`、`DOCS_SITE_DESCRIPTION`、`DOCS_SITE_LOCALE` 给品牌与语言，或在 `site.config.ts` 改默认值。
+2. 建一个只放内容的仓库：`content/docs` 下放 `meta.json` 与页面，不带 `app/`、依赖与样式。构建时用 `DOCS_CONTENT_DIR` 指本地 checkout，或 `DOCS_CONTENT_REPO` 指向远端仓库。
 3. 需要改 UI 文案时改 `app/layout.tsx` 的 `zhTranslations`；其它语言用 Fumadocs 默认文案。
 4. 字体栈与正文排版在 `app/global.css`。
+
+参考实现：lax 的文档内容是独立的纯 MDX 仓库，用 `Makefile` 把 `DOCS_CONTENT_DIR` 与本仓库的同步、开发、构建命令串起来，品牌值同样写在那个 `Makefile` 里。
 
 界面文案默认中文，内容语言不受限制。
