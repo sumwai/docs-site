@@ -58,7 +58,7 @@ export async function generateMetadata(props: PageProps<'/docs/[[...slug]]'>): P
   if (!page) notFound();
 
   return {
-    // 首页标题与站点名相同，模板会拼成「lax | lax」；其余页面照常带站点名。
+    // 首页标题与站点名相同时不要重复拼接站点名；其余页面照常带站点名。
     title: params.slug?.length ? page.data.title : { absolute: site.name },
     description: page.data.description,
     // Agent 与爬虫可以从 HTML 的 <link rel="alternate"> 直接找到该页的 Markdown 原文。

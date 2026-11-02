@@ -19,9 +19,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
-      DOCS_SITE_NAME: lax
-      DOCS_SITE_TAGLINE: 本机上的模型网关
-      DOCS_SITE_DESCRIPTION: 多家供应商的 API key 保存在一个本地 SQLite 文件中，客户端只连接一个地址；八种线协议可进可出，其中四种对话协议之间可以互相转换，探测、冷却、选号与用量记录都在本机完成。
+      DOCS_SITE_NAME: larkax
+      DOCS_SITE_TAGLINE: 默认入口 larkax.com，也可以自部署
+      DOCS_SITE_DESCRIPTION: 客户端把 Claude Code、Codex、OpenAI、Anthropic 与 Gemini SDK 指向同一个地址；八种线协议可进可出，其中四种对话协议之间可以互相转换。默认使用 larkax.com，也可以在自己的主机上部署同一套网关。
       DOCS_SITE_LOCALE: zh-CN
       NEXT_PUBLIC_SITE_URL: https://docs.larkax.com
       DOCS_SITE_URL: https://docs.larkax.com
@@ -47,7 +47,7 @@ jobs:
           test -n "$NEXT_PUBLIC_SITE_URL"
           node scripts/fetch-content.mjs
           npm run build
-          grep -q '<title>lax' .next-build/server/app/docs.html
+          grep -q '<title>larkax' .next-build/server/app/docs.html
 
       - name: Pack standalone output
         run: |
@@ -74,5 +74,5 @@ jobs:
         env:
           SSH_HOST: ${{ secrets.DEPLOY_HOST }}
           RELEASE_ID: ${{ github.sha }}
-          HEALTH_PREFIX: lax
+          HEALTH_PREFIX: larkax
         run: scripts/deploy.sh docs-site.tar.gz

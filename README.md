@@ -73,7 +73,7 @@ npm run build      # 普通构建
 | `DOCS_CONTENT_REPO` | `sumwai/lax-docs` |
 | `DOCS_CONTENT_REF` | `main` |
 | `DOCS_CONTENT_SUBDIR` | `content/docs` |
-| `DOCS_SITE_NAME` | `lax` |
+| `DOCS_SITE_NAME` | `larkax` |
 | `NEXT_PUBLIC_SITE_URL` | `https://docs.larkax.com` |
 
 构建完成后，workflow 把 `.next-build/standalone`、`.next-build/static` 与可选的 `public/` 打包成 `docs-site.tar.gz`。`scripts/deploy.sh` 通过 SSH 上传该文件，在目标机解包到 `$APP_DIR/releases/<release-id>`，原子切换 `current` 软链并重启 systemd 服务。目标机不运行 `npm`、测试或构建。
@@ -82,13 +82,13 @@ npm run build      # 普通构建
 
 - 服务有 `MainPID`；
 - 监听端口的进程属于该 unit；
-- `/docs` 返回的 HTML 包含 `<title>lax`。
+- `/docs` 返回的 HTML 包含 `<title>larkax`。
 
 目标机 systemd unit 使用 standalone 入口：
 
 ```ini
 [Unit]
-Description=lax docs site
+Description=larkax docs site
 After=network.target
 
 [Service]
@@ -100,9 +100,9 @@ Environment=NODE_ENV=production
 Environment=HOSTNAME=127.0.0.1
 Environment=PORT=3100
 Environment=NEXT_PUBLIC_SITE_URL=https://docs.larkax.com
-Environment=DOCS_SITE_NAME=lax
-Environment=DOCS_SITE_TAGLINE=本机上的模型网关
-Environment="DOCS_SITE_DESCRIPTION=多家供应商的 API key 保存在一个本地 SQLite 文件中，客户端只连接一个地址；八种线协议可进可出，其中四种对话协议之间可以互相转换，探测、冷却、选号与用量记录都在本机完成。"
+Environment=DOCS_SITE_NAME=larkax
+Environment=DOCS_SITE_TAGLINE=默认入口 larkax.com，也可以自部署
+Environment="DOCS_SITE_DESCRIPTION=客户端把 Claude Code、Codex、OpenAI、Anthropic 与 Gemini SDK 指向同一个地址；八种线协议可进可出，其中四种对话协议之间可以互相转换。默认使用 larkax.com，也可以在自己的主机上部署同一套网关。"
 Environment=DOCS_SITE_LOCALE=zh-CN
 ExecStart=/opt/node-v22.23.4/bin/node server.js
 Restart=on-failure
@@ -178,6 +178,6 @@ GitHub 仓库需要配置三个 Actions secret：
 3. 需要改 UI 文案时改 `app/layout.tsx` 的 `zhTranslations`；其它语言用 Fumadocs 默认文案。
 4. 字体栈与正文排版在 `app/global.css`。
 
-参考实现：lax 的文档内容是独立的纯 MDX 仓库，用 `Makefile` 把 `DOCS_CONTENT_DIR` 与本仓库的同步、开发、构建命令串起来，品牌值同样写在那个 `Makefile` 里。
+参考实现：larkax 的文档内容是独立的纯 MDX 仓库，用 `Makefile` 把 `DOCS_CONTENT_DIR` 与本仓库的同步、开发、构建命令串起来，品牌值同样写在那个 `Makefile` 里。
 
 界面文案默认中文，内容语言不受限制。

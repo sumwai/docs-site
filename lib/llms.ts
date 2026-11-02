@@ -17,6 +17,15 @@ function dropDuplicateFolders(index: string) {
   const lines = index.split('\n');
   return lines
     .filter((line, i) => {
+      // 子目录会同时输出「- **配置**」与「- 配置」：保留前者作为分组标题，
+      // 去掉没有链接的同名条目，否则 llms.txt 里同一层出现两次。
+      if (/^  - [^\[].+$/.test(line)) {
+        const heading = lines
+          .slice(0, i)
+          .reverse()
+          .find((candidate) => /^  - \*\*.+\*\*$/.test(candidate));
+        if (heading && heading.replace(/^  - \*\*(.+)\*\*$/, '$1') === line.slice(4)) return false;
+      }
       if (!/^- [^\[].+$/.test(line)) return true;
       const heading = lines
         .slice(0, i)
