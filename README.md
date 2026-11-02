@@ -130,12 +130,14 @@ GitHub 仓库需要配置三个 Actions secret：
 
 ### 内容更新
 
-页面在构建时预渲染，内容仓库推新提交后必须重新构建。两种触发方式：
+页面在构建时预渲染，内容仓库推新提交后必须重新构建。workflow 在构建前清理 `.next-build`，并在构建后检查产物里没有已下线的 `/docs/hosted` 链接；每次发布使用唯一的 release 目录，避免旧文件混进新版本。两种触发方式：
 
 - 内容仓库 push 后向站点仓库发 `repository_dispatch`，事件类型为 `content-updated`；
 - 手动触发站点仓库的 `deploy docs` workflow。
 
 固定版本时把 `DOCS_CONTENT_REF` 写成 tag；正式站点不要长期跟随 `main`。
+
+旧地址由 `next.config.mjs` 做永久跳转：`/docs/hosted` 到 `/docs/clients`，`/docs/hosted/auth` 到 `/docs/clients/auth`，`/docs/start/clients` 到 `/docs/clients`。
 
 ## Agent 入口
 

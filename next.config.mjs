@@ -12,6 +12,15 @@ const config = {
   // 开发服务器既可能从 localhost 访问，也可能从 127.0.0.1 访问，
   // 不加这一条时按 IP 访问会拦掉按需加载的 chunk（搜索对话框就是这种）。
   allowedDevOrigins: ['127.0.0.1'],
+  // 旧侧边栏与外部书签仍可能指向 hosted 路径；保留永久跳转，避免落到 404。
+  async redirects() {
+    return [
+      { source: '/docs/hosted', destination: '/docs/clients', permanent: true },
+      { source: '/docs/hosted/clients', destination: '/docs/clients', permanent: true },
+      { source: '/docs/hosted/auth', destination: '/docs/clients/auth', permanent: true },
+      { source: '/docs/start/clients', destination: '/docs/clients', permanent: true },
+    ];
+  },
 };
 
 export default withMDX(config);

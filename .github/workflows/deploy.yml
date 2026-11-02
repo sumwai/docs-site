@@ -45,9 +45,16 @@ jobs:
         run: |
           test -n "$DOCS_SITE_NAME"
           test -n "$NEXT_PUBLIC_SITE_URL"
+          # 上一版删除或改名的页面会留在 .next-build 里；发布产物必须是这次内容的全量结果。
+          if [ -d .next-build ]; then find .next-build -mindepth 1 -delete; fi
           node scripts/fetch-content.mjs
           npm run build
           grep -q '<title>larkax' .next-build/server/app/docs.html
+          if grep -R -q --include='*.html' '/docs/hosted' .next-build/server/app; then
+            echo '构建产物仍包含已下线的 /docs/hosted 链接' >&2
+            exit 1
+          fi
+          grep -q 'href="/docs/clients' .next-build/server/app/docs.html
 
       - name: Pack standalone output
         run: |
@@ -73,6 +80,6 @@ jobs:
       - name: Deploy
         env:
           SSH_HOST: ${{ secrets.DEPLOY_HOST }}
-          RELEASE_ID: ${{ github.sha }}
+          RELEASE_ID: ${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           HEALTH_PREFIX: larkax
         run: scripts/deploy.sh docs-site.tar.gz

@@ -50,6 +50,10 @@ health_url=$5
 health_prefix=$6
 health_port=$7
 
+if [[ -e "$release" ]]; then
+  echo "发布目录已存在，拒绝复用：$release" >&2
+  exit 1
+fi
 mkdir -p "$app_dir/releases" "$release"
 tar -xzf "$artifact" -C "$release"
 chmod +x "$release/server.js"
