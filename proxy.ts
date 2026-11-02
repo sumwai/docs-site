@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isMarkdownPreferred, rewritePath } from 'fumadocs-core/negotiation';
+import { llmsIndex } from '@/lib/llms';
+import { docsLlms, source } from '@/lib/source';
 import { docsContentRoute, docsRoute } from '@/lib/shared';
 
 const { rewrite: rewriteDocs } = rewritePath(
@@ -11,29 +13,42 @@ const { rewrite: rewriteSuffix } = rewritePath(
   `${docsContentRoute}{/*path}/content.md`,
 );
 
-export default function proxy(request: NextRequest) {
+async function markdown(pathname: string) {
+  const slugs = pathname.slice(docsRoute.length).replace(/^\/|\.md$/g, '');
+  const page = source.getPage(slugs ? slugs.split('/') : undefined);
+  if (!page) return new NextResponse('Not Found', { status: 404 });
+
+  return new Response(await docsLlms.page(page), {
+    headers: {
+      'Content-Type': 'text/markdown; charset=utf-8',
+      Vary: 'Accept',
+    },
+  });
+}
+
+export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const result = rewriteSuffix(pathname);
   if (result) {
-    return NextResponse.rewrite(new URL(result, request.nextUrl));
+    return markdown(pathname);
   }
 
   if (isMarkdownPreferred(request)) {
     // 首页没有 Markdown 正文，直接给文档索引：代理拿到根地址时不必再从 HTML 里找入口。
     if (pathname === '/') {
-      return NextResponse.rewrite(new URL('/llms.txt', request.nextUrl), {
-        headers: { Vary: 'Accept' },
+      return new Response(await llmsIndex(), {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          Vary: 'Accept',
+        },
       });
     }
 
     const result = rewriteDocs(pathname);
 
     if (result) {
-      return NextResponse.rewrite(new URL(result, request.nextUrl), {
-        // this URL has two representations, selected by `Accept`
-        headers: { Vary: 'Accept' },
-      });
+      return markdown(pathname);
     }
   }
 
