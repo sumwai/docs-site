@@ -1,0 +1,78 @@
+name: deploy docs
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  repository_dispatch:
+    types: [content-updated]
+
+concurrency:
+  group: docs-site-deploy
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      DOCS_SITE_NAME: lax
+      DOCS_SITE_TAGLINE: 本机上的模型网关
+      DOCS_SITE_DESCRIPTION: 多家供应商的 API key 保存在一个本地 SQLite 文件中，客户端只连接一个地址；八种线协议可进可出，其中四种对话协议之间可以互相转换，探测、冷却、选号与用量记录都在本机完成。
+      DOCS_SITE_LOCALE: zh-CN
+      NEXT_PUBLIC_SITE_URL: https://docs.larkax.com
+      DOCS_SITE_URL: https://docs.larkax.com
+      DOCS_CONTENT_REPO: sumwai/lax-docs
+      DOCS_CONTENT_REF: main
+      DOCS_CONTENT_SUBDIR: content/docs
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci --no-audit --no-fund --registry=https://registry.npmjs.org --replace-registry-host=always
+
+      - name: Build standalone site
+        # site.config.ts 在构建时读取这些变量；缺了就会把默认品牌 Docs 写进静态页面。
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          test -n "$DOCS_SITE_NAME"
+          test -n "$NEXT_PUBLIC_SITE_URL"
+          node scripts/fetch-content.mjs
+          npm run build
+          grep -q '<title>lax' .next-build/server/app/docs.html
+
+      - name: Pack standalone output
+        run: |
+          set -euo pipefail
+          root=.next-build/standalone
+          test -f "$root/server.js"
+          cp -r .next-build/static "$root/.next-build/static"
+          mkdir -p "$root/public"
+          if [ -d public ]; then cp -r public/. "$root/public/"; fi
+          tar -czf docs-site.tar.gz -C "$root" .
+
+      - name: Install deploy key
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Deploy
+        env:
+          SSH_HOST: ${{ secrets.DEPLOY_HOST }}
+          RELEASE_ID: ${{ github.sha }}
+          HEALTH_PREFIX: lax
+        run: scripts/deploy.sh docs-site.tar.gz

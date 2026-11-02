@@ -62,89 +62,78 @@ npm run build      # 普通构建
 
 站点用 Next.js 的 Node 服务器运行，不做静态导出：`/api/search` 需要服务端搜索索引，`proxy.ts` 负责 `.md` 与 `Accept: text/markdown` 的重写。
 
-### Docker
+### GitHub Actions 构建与发布
 
-构建阶段拉内容并完成 SSG，运行阶段只带 `.next-build` 与生产依赖。内容更新需要重新构建镜像。品牌走构建参数，构建时写进静态页面的标题与首页文案：
+`.github/workflows/deploy.yml` 在 GitHub 的 Ubuntu runner 上完成依赖安装、内容同步与生产构建。推送 `main`、手动触发或收到 `content-updated` 仓库事件时都会运行。
 
-```bash
-docker build -t docs-site .
+构建环境固定这些值：
 
-docker build \
-  --build-arg DOCS_SITE_NAME=<站点名> \
-  --build-arg DOCS_SITE_TAGLINE=<首页小字> \
-  --build-arg DOCS_SITE_DESCRIPTION=<首页正文> \
-  --build-arg DOCS_SITE_LOCALE=zh-CN \
-  -t docs-site .
-```
+| 变量 | 值 |
+| --- | --- |
+| `DOCS_CONTENT_REPO` | `sumwai/lax-docs` |
+| `DOCS_CONTENT_REF` | `main` |
+| `DOCS_CONTENT_SUBDIR` | `content/docs` |
+| `DOCS_SITE_NAME` | `lax` |
+| `NEXT_PUBLIC_SITE_URL` | `https://docs.larkax.com` |
 
-私有内容仓库用 BuildKit secret，token 不进入镜像层：
+构建完成后，workflow 把 `.next-build/standalone`、`.next-build/static` 与可选的 `public/` 打包成 `docs-site.tar.gz`。`scripts/deploy.sh` 通过 SSH 上传该文件，在目标机解包到 `$APP_DIR/releases/<release-id>`，原子切换 `current` 软链并重启 systemd 服务。目标机不运行 `npm`、测试或构建。
 
-```bash
-printf '%s' "$GITHUB_TOKEN" > /tmp/gh-token
-docker build \
-  --build-arg DOCS_CONTENT_REPO=<owner>/<repo> \
-  --build-arg DOCS_CONTENT_REF=<ref> \
-  --secret id=github_token,src=/tmp/gh-token \
-  -t docs-site .
-rm -f /tmp/gh-token
-```
+发布失败时脚本把 `current` 切回上一个版本，并重启服务。健康检查同时核对：
 
-构建环境的 npm registry 不是官方源时，加 `--build-arg NPM_REGISTRY=<镜像源>`。
+- 服务有 `MainPID`；
+- 监听端口的进程属于该 unit；
+- `/docs` 返回的 HTML 包含 `<title>lax`。
 
-运行：
-
-```bash
-docker run -d --name docs-site --restart unless-stopped \
-  -p 127.0.0.1:3000:3000 \
-  -e NEXT_PUBLIC_SITE_URL=https://docs.example.com \
-  -e DOCS_SITE_NAME=<站点名> \
-  docs-site
-```
-
-`DOCS_SITE_NAME` 等在运行阶段影响 `robots.txt` 与 `llms.txt` 的头部，要与构建参数一致。
-
-只把端口绑在回环地址，由反向代理终止 TLS：
-
-```caddyfile
-docs.example.com {
-    reverse_proxy 127.0.0.1:3000
-}
-```
-
-镜像自带 `HEALTHCHECK`，探测 `/docs`。反向代理可额外缓存 `/_next/static/*`。
-
-### systemd
-
-```bash
-cd /path/to/docs-site
-npm ci
-npm run content
-npm run build
-```
+目标机 systemd unit 使用 standalone 入口：
 
 ```ini
 [Unit]
-Description=docs-site
+Description=lax docs site
 After=network.target
 
 [Service]
-WorkingDirectory=/path/to/docs-site
+Type=simple
+User=sumwai
+Group=sumwai
+WorkingDirectory=/home/sumwai/docs-site/current
 Environment=NODE_ENV=production
-Environment=NEXT_PUBLIC_SITE_URL=https://docs.example.com
-Environment=DOCS_SITE_NAME=<站点名>
-ExecStart=/usr/bin/node node_modules/.bin/next start -H 127.0.0.1 -p 3000
+Environment=HOSTNAME=127.0.0.1
+Environment=PORT=3100
+Environment=NEXT_PUBLIC_SITE_URL=https://docs.larkax.com
+Environment=DOCS_SITE_NAME=lax
+Environment=DOCS_SITE_TAGLINE=本机上的模型网关
+Environment="DOCS_SITE_DESCRIPTION=多家供应商的 API key 保存在一个本地 SQLite 文件中，客户端只连接一个地址；八种线协议可进可出，其中四种对话协议之间可以互相转换，探测、冷却、选号与用量记录都在本机完成。"
+Environment=DOCS_SITE_LOCALE=zh-CN
+ExecStart=/opt/node-v22.23.4/bin/node server.js
 Restart=on-failure
+RestartSec=2
 
 [Install]
 WantedBy=multi-user.target
 ```
 
+反向代理只转发到回环地址：
+
+```caddyfile
+docs.larkax.com {
+    reverse_proxy 127.0.0.1:3100
+}
+```
+
+GitHub 仓库需要配置三个 Actions secret：
+
+| secret | 内容 |
+| --- | --- |
+| `DEPLOY_SSH_KEY` | 部署私钥 |
+| `DEPLOY_KNOWN_HOSTS` | `ssh-keyscan -H <主机>` 的输出 |
+| `DEPLOY_HOST` | SSH 目标，例如 `user@host` |
+
 ### 内容更新
 
 页面在构建时预渲染，内容仓库推新提交后必须重新构建。两种触发方式：
 
-- 内容仓库 push 后向站点仓库发 `repository_dispatch`，站点仓库构建并替换镜像；
-- 站点仓库定时或手动构建，`DOCS_CONTENT_REF` 指向 `main` 或某个 tag。
+- 内容仓库 push 后向站点仓库发 `repository_dispatch`，事件类型为 `content-updated`；
+- 手动触发站点仓库的 `deploy docs` workflow。
 
 固定版本时把 `DOCS_CONTENT_REF` 写成 tag；正式站点不要长期跟随 `main`。
 
@@ -179,7 +168,8 @@ WantedBy=multi-user.target
 | `lib/source.ts` | 内容源与 Fumadocs 加载器 |
 | `lib/shared.ts` | 站点名、路由前缀、绝对地址 |
 | `scripts/fetch-content.mjs` | 构建前同步内容 |
-| `Dockerfile` | 构建与运行镜像 |
+| `.github/workflows/deploy.yml` | GitHub Actions 构建与 SSH 发布 |
+| `scripts/deploy.sh` | 上传产物、切换软链、重启与回滚 |
 
 ## 换一个项目
 

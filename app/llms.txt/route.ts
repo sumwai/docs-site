@@ -13,10 +13,24 @@ function toMarkdownLinks(index: string) {
   });
 }
 
+// docsLlms.index() 会同时输出加粗的文件夹标题与同名 index 页面。分组标题不带
+// 页面链接，保留它只会让索引里出现两行同名内容，因此只保留带链接的页面条目。
+function dropDuplicateFolders(index: string) {
+  return index
+    .split('\n')
+    .filter((line) => {
+      if (/^- \*\*.+\*\*$/.test(line)) return false;
+      return !/^- [^\[].+$/.test(line);
+    })
+    .join('\n');
+}
+
 export async function GET() {
   const zh = site.locale.startsWith('zh');
   // docsLlms.index() 自己带一级标题，这里去掉，换成带读取说明的头部。
-  const index = toMarkdownLinks(await docsLlms.index()).replace(/^# .*\n+/, '');
+  const index = dropDuplicateFolders(
+    toMarkdownLinks(await docsLlms.index()).replace(/^# .*\n+/, ''),
+  );
 
   const header = zh
     ? [

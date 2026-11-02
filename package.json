@@ -8,6 +8,7 @@
     "predev": "node scripts/fetch-content.mjs",
     "build": "DOCS_DIST_DIR=.next-build next build",
     "start": "DOCS_DIST_DIR=.next-build next start",
+    "start:standalone": "node .next-build/standalone/server.js",
     "content": "node scripts/fetch-content.mjs",
     "typecheck": "next typegen && tsc --noEmit"
   },

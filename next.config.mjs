@@ -5,6 +5,8 @@ const withMDX = createMDX();
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
+  // 生产发布只带 server.js 与它需要的最小依赖，不在目标机器上 npm ci 或 next build。
+  output: 'standalone',
   // 构建与生产启动同时跑时各用各的输出目录，互不干扰（npm scripts 用 DOCS_DIST_DIR 指定）。
   distDir: process.env.DOCS_DIST_DIR || '.next',
   // 开发服务器既可能从 localhost 访问，也可能从 127.0.0.1 访问，

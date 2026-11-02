@@ -12,6 +12,7 @@ import type { Metadata } from 'next';
 import { createRelativeLink } from 'fumadocs-ui/mdx';
 import { ThemeSwitch } from 'fumadocs-ui/layouts/shared/slots/theme-switch';
 import { getPageImageUrl, getPageMarkdownUrl, getPageSourceUrl } from '@/lib/shared';
+import { site } from '@/site.config';
 
 export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
   const params = await props.params;
@@ -57,7 +58,8 @@ export async function generateMetadata(props: PageProps<'/docs/[[...slug]]'>): P
   if (!page) notFound();
 
   return {
-    title: page.data.title,
+    // 首页标题与站点名相同，模板会拼成「lax | lax」；其余页面照常带站点名。
+    title: params.slug?.length ? page.data.title : { absolute: site.name },
     description: page.data.description,
     // Agent 与爬虫可以从 HTML 的 <link rel="alternate"> 直接找到该页的 Markdown 原文。
     alternates: {
