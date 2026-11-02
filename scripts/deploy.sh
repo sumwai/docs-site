@@ -59,7 +59,6 @@ tar -xzf "$artifact" -C "$release"
 chmod +x "$release/server.js"
 
 previous=$(readlink -f "$app_dir/current" 2>/dev/null || true)
-ln -sfn "$release" "$app_dir/current"
 
 restore() {
   if [[ -n "$previous" && -d "$previous" ]]; then
@@ -69,6 +68,7 @@ restore() {
 }
 trap 'restore' ERR
 
+ln -sfn "$release" "$app_dir/current"
 sudo -n systemctl restart "$service"
 
 ok=false
