@@ -102,7 +102,7 @@ Environment=PORT=3100
 Environment=NEXT_PUBLIC_SITE_URL=https://docs.larkax.com
 Environment=DOCS_SITE_NAME=larkax
 Environment=DOCS_SITE_TAGLINE=默认入口 larkax.com，也可以自部署
-Environment="DOCS_SITE_DESCRIPTION=客户端把 Claude Code、Codex、OpenAI、Anthropic 与 Gemini SDK 指向同一个地址；八种线协议可进可出，其中四种对话协议之间可以互相转换。默认使用 larkax.com，也可以在自己的主机上部署同一套网关。"
+Environment="DOCS_SITE_DESCRIPTION=客户端把 Claude Code、Codex、OpenAI、Anthropic 与 Gemini SDK 指向同一个地址；八条报文协议可进可出，其中四条对话协议之间可以互相转换。默认使用 larkax.com，也可以在自己的主机上部署同一套网关。"
 Environment=DOCS_SITE_LOCALE=zh-CN
 ExecStart=/opt/node-v22.23.4/bin/node server.js
 Restart=on-failure
