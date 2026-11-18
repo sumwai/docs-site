@@ -87,7 +87,8 @@ for _ in $(seq 1 30); do
     sleep 1
     continue
   fi
-  body=$(curl -fsS "$health_url" 2>/dev/null || true)
+  # -L：入口地址可能是跳到第一个分类的 307，跟着走才算真的读到了页面。
+  body=$(curl -fsSL "$health_url" 2>/dev/null || true)
   if [[ -n "$body" && ( -z "$health_prefix" || "$body" == *"$health_prefix"* ) ]]; then
     ok=true
     break

@@ -10,7 +10,6 @@ import { notFound } from 'next/navigation';
 import { getMDXComponents } from '@/components/mdx';
 import type { Metadata } from 'next';
 import { createRelativeLink } from 'fumadocs-ui/mdx';
-import { ThemeSwitch } from 'fumadocs-ui/layouts/shared/slots/theme-switch';
 import { getPageImageUrl, getPageMarkdownUrl, getPageSourceUrl } from '@/lib/shared';
 import { site } from '@/site.config';
 
@@ -34,7 +33,6 @@ export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
         >
           Markdown
         </a>
-        <ThemeSwitch className="ms-auto" />
       </div>
       <DocsBody>
         <MDX

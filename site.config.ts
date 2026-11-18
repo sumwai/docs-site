@@ -19,4 +19,6 @@ export const site = {
   // 文档正文的语言由内容决定；这里控制 <html lang> 与内置 UI 文案。
   // 以 zh 开头时启用 app/layout.tsx 里的中文覆盖，其它语言用 Fumadocs 默认英文。
   locale: pick(env.DOCS_SITE_LOCALE, 'zh-CN'),
+  // 侧边栏底部的仓库地址；留空时只显示主题切换。
+  github: pick(env.DOCS_SITE_GITHUB, ''),
 };

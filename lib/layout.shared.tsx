@@ -6,8 +6,8 @@ export function baseOptions(): BaseLayoutProps {
     nav: {
       title: appName,
     },
-    // 主题切换由文档页的页头渲染（见 app/docs/[[...slug]]/page.tsx），
-    // 侧边栏底部不再放。
+    // 主题切换放在侧边栏底部（见 components/sidebar-footer.tsx），
+    // 导航栏与页头都不再放，免得同一页出现两个开关。
     slots: {
       themeSwitch: false,
     },

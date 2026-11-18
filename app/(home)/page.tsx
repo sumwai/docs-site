@@ -2,6 +2,8 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { site } from '@/site.config';
 import { getRequestUrl } from '@/lib/shared';
+import { source } from '@/lib/source';
+import { firstCategoryUrl } from '@/lib/docs-nav';
 import { AgentEntries } from '@/components/agent-entries';
 
 // 按实际请求推导，预览换端口时 alternate 链接仍然指向本机。
@@ -17,6 +19,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default function HomePage() {
   const zh = site.locale.startsWith('zh');
+  // 有分区时直接进第一个分类，读者一进来就看到选好的分区与内容。
+  const docsUrl = firstCategoryUrl(source.getPageTree()) ?? '/docs';
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center">
@@ -25,7 +29,7 @@ export default function HomePage() {
       <p className="mb-8 max-w-xl text-fd-muted-foreground">{site.description}</p>
       <div className="relative flex flex-wrap items-center justify-center gap-3">
         <Link
-          href="/docs"
+          href={docsUrl}
           className="rounded-lg bg-fd-primary px-5 py-2.5 text-sm font-medium text-fd-primary-foreground transition-opacity hover:opacity-90"
         >
           {zh ? '阅读文档' : 'Read the docs'}

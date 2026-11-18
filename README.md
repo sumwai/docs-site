@@ -21,16 +21,25 @@ npm run start      # 以生产模式启动
 | `DOCS_SITE_TAGLINE` | 首页标题上方的小字 |
 | `DOCS_SITE_DESCRIPTION` | 首页正文与 meta description |
 | `DOCS_SITE_LOCALE` | `<html lang>` 与内置 UI 文案；以 `zh` 开头时启用中文覆盖，其余用 Fumadocs 默认英文 |
+| `DOCS_SITE_GITHUB` | 侧边栏底部的仓库地址；留空时只显示主题切换 |
 
 首页、导航、站点地图与 Agent 入口都读这些值，不在页面里写死站点名。`DOCS_SITE_NAME`、`DOCS_SITE_TAGLINE`、`DOCS_SITE_DESCRIPTION` 在构建时决定静态页面的文案，`robots.txt` 与 `llms.txt` 按请求生成，运行阶段还会再读一次，所以构建与运行要给同一组值。
 
-内容仓库只需要提供这四个值，不必复制 `site.config.ts`。
+内容仓库只需要提供这几个值，不必复制 `site.config.ts`。
 
 ## 内容
 
 构建用的内容在 `content/docs/`，它不入库，由同步脚本生成。仓库自带的示例内容在 `content.example/docs/`，结构就是内容仓库该有的样子：`meta.json` 加两个页面。
 
-页面是普通 Markdown / MDX，frontmatter 至少写 `title`，可选 `description`；侧边栏顺序与分隔线写在各级 `meta.json`。
+页面是普通 Markdown / MDX，frontmatter 至少写 `title`，可选 `description`；侧边栏顺序、分隔线与分区写在各级 `meta.json`。
+
+### 侧边栏分区
+
+目录的 `meta.json` 写 `"root": true` 后，它会成为侧边栏顶部的可切换分类：进入该目录下的页面时，侧边栏只显示这个目录的页面，顶部的切换器列出同一层级的其它分类。`description` 显示在切换器里；分类有首页时用 `"pagesIndex": "index"` 指定，否则切换器指向分类内第一个页面。
+
+只想让某个目录在侧边栏里独占一屏、但不进切换器时，把 `root` 写成任意字符串，例如 `"root": "aux"`。这类目录以链接形式固定在页面树上方，切换器仍然只列真正的分类。当前页面不属于任何分类时，切换器显示「选择分类」占位，随时可以切回分类。
+
+内容里没有顶层 `content/docs/index.mdx` 时，`/docs` 会跳转到第一个分类的首页，读者不会停在空白入口；首页的「阅读文档」按钮也指向同一个地址。
 
 正文可用标准 Markdown、GFM 表格，以及 Fumadocs 内置的 `<Cards>` / `<Card>` 与代码块高亮标记（`// [!code ++]`、`// [!code --]`）。内容不能 `import` 站点源码里的模块。
 
@@ -104,6 +113,7 @@ Environment=DOCS_SITE_NAME=larkax
 Environment=DOCS_SITE_TAGLINE=默认入口 larkax.com，也可以自部署
 Environment="DOCS_SITE_DESCRIPTION=客户端把 Claude Code、Codex、OpenAI、Anthropic 与 Gemini SDK 指向同一个地址；八条报文协议可进可出，其中四条对话协议之间可以互相转换。默认使用 larkax.com，也可以在自己的主机上部署同一套网关。"
 Environment=DOCS_SITE_LOCALE=zh-CN
+Environment=DOCS_SITE_GITHUB=https://github.com/sumwai/lax
 ExecStart=/opt/node-v22.23.4/bin/node server.js
 Restart=on-failure
 RestartSec=2
@@ -137,7 +147,7 @@ GitHub 仓库需要配置三个 Actions secret：
 
 固定版本时把 `DOCS_CONTENT_REF` 写成 tag；正式站点不要长期跟随 `main`。
 
-旧地址由 `next.config.mjs` 做永久跳转：`/docs/hosted` 到 `/docs/clients`，`/docs/hosted/auth` 到 `/docs/clients/auth`，`/docs/start/clients` 到 `/docs/clients`。
+旧地址由 `next.config.mjs` 做永久跳转：`/docs/clients/*` 到 `/docs/public/clients/*`（`auth`、`troubleshooting` 到 `/docs/public/` 下的同级页面），`/docs/concepts/*` 到 `/docs/self-hosted/concepts/*`，`/docs/reference/cli` 到 `/docs/self-hosted/cli`，`/docs/reference/faq` 到 `/docs/self-hosted/faq`，更早的 `/docs/hosted/*` 与 `/docs/start/clients` 到新的 `/docs/public/*` 地址。
 
 ## Agent 入口
 
@@ -168,6 +178,8 @@ GitHub 仓库需要配置三个 Actions secret：
 | `app/og/docs/[...slug]` | OG 图 |
 | `proxy.ts` | Markdown 缩写与 `Accept` 协商 |
 | `lib/source.ts` | 内容源与 Fumadocs 加载器 |
+| `lib/docs-nav.tsx` | 从页面树整理分类、固定入口与文档入口地址 |
+| `components/category-switcher.tsx` | 侧边栏顶部的分类切换器 |
 | `lib/shared.ts` | 站点名、路由前缀、绝对地址 |
 | `scripts/fetch-content.mjs` | 构建前同步内容 |
 | `.github/workflows/deploy.yml` | GitHub Actions 构建与 SSH 发布 |
@@ -175,7 +187,7 @@ GitHub 仓库需要配置三个 Actions secret：
 
 ## 换一个项目
 
-1. 用 `DOCS_SITE_NAME`、`DOCS_SITE_TAGLINE`、`DOCS_SITE_DESCRIPTION`、`DOCS_SITE_LOCALE` 给品牌与语言，或在 `site.config.ts` 改默认值。
+1. 用 `DOCS_SITE_NAME`、`DOCS_SITE_TAGLINE`、`DOCS_SITE_DESCRIPTION`、`DOCS_SITE_LOCALE`、`DOCS_SITE_GITHUB` 给品牌、语言与仓库地址，或在 `site.config.ts` 改默认值。
 2. 建一个只放内容的仓库：`content/docs` 下放 `meta.json` 与页面，不带 `app/`、依赖与样式。构建时用 `DOCS_CONTENT_DIR` 指本地 checkout，或 `DOCS_CONTENT_REPO` 指向远端仓库。
 3. 需要改 UI 文案时改 `app/layout.tsx` 的 `zhTranslations`；其它语言用 Fumadocs 默认文案。
 4. 字体栈与正文排版在 `app/global.css`。

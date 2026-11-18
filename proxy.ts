@@ -3,6 +3,7 @@ import { isMarkdownPreferred, rewritePath } from 'fumadocs-core/negotiation';
 import { llmsIndex } from '@/lib/llms';
 import { docsLlms, source } from '@/lib/source';
 import { docsContentRoute, docsRoute } from '@/lib/shared';
+import { firstCategoryUrl } from '@/lib/docs-nav';
 
 const { rewrite: rewriteDocs } = rewritePath(
   `${docsRoute}{/*path}`,
@@ -28,6 +29,17 @@ async function markdown(pathname: string) {
 
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // 内容里没有文档总览页时，不要停在空白入口：直接落到第一个分类，
+  // 侧边栏一进来就是选好的分区，页面也已经有内容。
+  if (pathname === docsRoute && !source.getPage(undefined)) {
+    const target = firstCategoryUrl(source.getPageTree());
+    if (target) {
+      const url = request.nextUrl.clone();
+      url.pathname = target;
+      return NextResponse.redirect(url);
+    }
+  }
 
   const result = rewriteSuffix(pathname);
   if (result) {
