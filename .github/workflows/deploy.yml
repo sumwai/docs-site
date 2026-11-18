@@ -52,7 +52,8 @@ jobs:
           npm run build
           # 文档入口没有独立页面，落在第一个分类的首页上；没有该分类时退回 public。
           entry=.next-build/server/app/docs/public.html
-          grep -q '<title>larkax' "$entry"
+          # 分类首页的标题是「页面名 | 站点名」，站点名不一定在开头，检查包含即可。
+          grep -q '<title>[^<]*larkax' "$entry"
           if grep -R -q --include='*.html' '/docs/hosted' .next-build/server/app; then
             echo '构建产物仍包含已下线的 /docs/hosted 链接' >&2
             exit 1
