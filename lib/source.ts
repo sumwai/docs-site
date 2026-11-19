@@ -1,5 +1,7 @@
 import { llms, loader } from 'fumadocs-core/source';
+import { remarkMdxMermaid } from 'fumadocs-core/mdx-plugins';
 import { lucideIconsPlugin } from 'fumadocs-core/source/lucide-icons';
+import { applyMdxPreset } from 'fumadocs-mdx/config';
 import { defineDocs } from 'fumadocs-mdx/macro';
 import { metaSchema, pageSchema } from 'fumadocs-core/source/schema';
 
@@ -7,6 +9,9 @@ const docs = defineDocs({
   dir: 'content/docs',
   docs: {
     schema: pageSchema,
+    mdxOptions: applyMdxPreset({
+      remarkPlugins: [remarkMdxMermaid],
+    }),
     postprocess: {
       includeProcessedMarkdown: true,
     },

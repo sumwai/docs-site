@@ -1,30 +1,37 @@
 'use client';
 
+import { Check, ChevronDown, Copy, ExternalLink } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 type Props = {
-  siteName: string;
+  sourceUrl: string;
+  siteName?: string;
   locale?: string;
 };
 
-// 公开入口页上的「让 AI 代理阅读」入口：默认收起，展开后给出一段可直接粘贴给代理的文字。
-export function AgentEntries({ siteName, locale = 'zh-CN' }: Props) {
+// 文档页顶部的「让 AI 代理阅读」入口：收起时与 Copy Markdown 按钮对齐，
+// 展开后提供当前页 Markdown 原文直链、可直接复制的代理提示词与一键复制按钮。
+export function AgentEntries({ sourceUrl, locale = 'zh-CN' }: Props) {
   const zh = locale.startsWith('zh');
   const [open, setOpen] = useState(false);
   const [origin, setOrigin] = useState('');
   const [copied, setCopied] = useState(false);
+  const [offsetX, setOffsetX] = useState(0);
   const container = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
   const text = zh
     ? {
         trigger: '让 AI 代理阅读',
-        hint: '把这段文字连同链接一起发给 AI 代理。',
+        sourceLabel: 'Markdown 原文',
+        promptLabel: '代理提示词',
         copy: '复制',
         copied: '已复制',
       }
     : {
-        trigger: 'Read with an AI agent',
-        hint: 'Send this text together with the links to an AI agent.',
+        trigger: 'For Agent',
+        sourceLabel: 'Markdown source',
+        promptLabel: 'Prompt for agent',
         copy: 'Copy',
         copied: 'Copied',
       };
@@ -33,7 +40,25 @@ export function AgentEntries({ siteName, locale = 'zh-CN' }: Props) {
   useEffect(() => setOrigin(window.location.origin), []);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setOffsetX(0);
+      return;
+    }
+
+    const updatePosition = () => {
+      const el = popoverRef.current;
+      const anchor = container.current;
+      if (!el || !anchor) return;
+      const margin = 16;
+      const anchorRect = anchor.getBoundingClientRect();
+      const overflowRight = anchorRect.left + el.offsetWidth - (window.innerWidth - margin);
+      if (overflowRight > 0) {
+        const maxShiftLeft = Math.max(0, anchorRect.left - margin);
+        setOffsetX(-Math.min(overflowRight, maxShiftLeft));
+      } else {
+        setOffsetX(0);
+      }
+    };
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setOpen(false);
@@ -44,10 +69,13 @@ export function AgentEntries({ siteName, locale = 'zh-CN' }: Props) {
       }
     };
 
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
     document.addEventListener('keydown', onKeyDown);
     document.addEventListener('mousedown', onPointerDown);
 
     return () => {
+      window.removeEventListener('resize', updatePosition);
       document.removeEventListener('keydown', onKeyDown);
       document.removeEventListener('mousedown', onPointerDown);
     };
@@ -59,16 +87,17 @@ export function AgentEntries({ siteName, locale = 'zh-CN' }: Props) {
     return () => clearTimeout(timer);
   }, [copied]);
 
+  const fullSourceUrl = origin ? `${origin}${sourceUrl}` : sourceUrl;
+  const fullLlmsUrl = origin ? `${origin}/llms.txt` : '/llms.txt';
+
   const prompt = zh
     ? [
-        `请先阅读 ${origin}/llms.txt。这是 ${siteName} 的文档索引，条目链接都指向对应页面的 Markdown 原文。`,
-        `需要全部内容时读 ${origin}/llms-full.txt。`,
-        '据此回答我的问题，不要凭猜测补全命令与参数。',
+        `请先阅读 ${fullSourceUrl} 了解相关内容，并据此回答我的问题。`,
+        `如需查阅全站文档索引，请访问 ${fullLlmsUrl}。`,
       ].join('\n')
     : [
-        `Read ${origin}/llms.txt first. It is the documentation index for ${siteName}; every entry links to the Markdown source of that page.`,
-        `Read ${origin}/llms-full.txt when the full content is needed.`,
-        'Answer from those files and do not guess commands or parameters.',
+        `Read ${fullSourceUrl} first to understand the relevant content, and answer my questions based on it.`,
+        `For the full documentation index, see ${fullLlmsUrl}.`,
       ].join('\n');
 
   async function copy() {
@@ -87,41 +116,53 @@ export function AgentEntries({ siteName, locale = 'zh-CN' }: Props) {
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         aria-controls="agent-entries"
-        className="inline-flex items-center gap-1.5 rounded-lg border px-4 py-2.5 text-sm text-fd-muted-foreground transition-colors hover:text-fd-foreground"
+        className="inline-flex items-center justify-center gap-1.5 rounded-md border border-fd-border bg-fd-secondary px-2.5 py-1.5 text-xs font-medium text-fd-secondary-foreground transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground [&_svg]:size-3.5 [&_svg]:text-fd-muted-foreground"
       >
         {text.trigger}
-        <svg
-          width="12"
-          height="12"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+        <ChevronDown
           aria-hidden="true"
           className={open ? 'rotate-180 transition-transform' : 'transition-transform'}
-        >
-          <path d="m6 9 6 6 6-6" />
-        </svg>
+        />
       </button>
 
       {open && (
         <div
+          ref={popoverRef}
           id="agent-entries"
-          className="absolute left-0 top-full z-20 mt-2 w-[min(28rem,calc(100vw-2rem))] rounded-lg border bg-fd-background p-4 text-left shadow-lg"
+          role="dialog"
+          aria-label={text.trigger}
+          style={{ transform: offsetX ? `translateX(${offsetX}px)` : undefined }}
+          className="absolute left-0 top-full z-30 mt-2 w-[min(28rem,calc(100vw-2rem))] rounded-lg border border-fd-border bg-fd-popover p-3.5 text-left text-fd-popover-foreground shadow-lg"
         >
-          <div className="mb-2 flex items-baseline justify-between gap-2">
-            <p className="text-xs text-fd-muted-foreground">{text.hint}</p>
+          <div className="mb-3 rounded-md border border-fd-border bg-fd-muted/40 px-3 py-2">
+            <div className="mb-1 text-[11px] font-medium text-fd-muted-foreground">
+              {text.sourceLabel}
+            </div>
+            <a
+              href={fullSourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex max-w-full items-center gap-1.5 break-all font-mono text-xs text-fd-primary underline-offset-4 hover:underline"
+            >
+              <span>{fullSourceUrl}</span>
+              <ExternalLink className="size-3 shrink-0" aria-hidden="true" />
+            </a>
+          </div>
+
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <span className="text-[11px] font-medium text-fd-muted-foreground">
+              {text.promptLabel}
+            </span>
             <button
               type="button"
               onClick={copy}
-              className="shrink-0 rounded border px-2 py-1 text-xs text-fd-muted-foreground transition-colors hover:text-fd-foreground"
+              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-fd-border bg-fd-secondary px-2 py-1 text-xs font-medium text-fd-secondary-foreground transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground"
             >
+              {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
               {copied ? text.copied : text.copy}
             </button>
           </div>
-          <pre className="whitespace-pre-wrap break-words rounded-md border bg-fd-muted/40 p-3 text-xs leading-relaxed">
+          <pre className="whitespace-pre-wrap break-words rounded-md border border-fd-border bg-fd-muted/40 p-2.5 text-xs leading-relaxed text-fd-foreground">
             <code>{prompt}</code>
           </pre>
         </div>
