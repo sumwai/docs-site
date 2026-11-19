@@ -3,7 +3,6 @@ import { headers } from 'next/headers';
 import { site } from '@/site.config';
 
 export const appName = site.name;
-export const docsRoute = '/docs';
 export const docsImageRoute = '/og/docs';
 export const docsContentRoute = '/llms.mdx/docs';
 
@@ -26,9 +25,10 @@ export async function getRequestUrl(path = '') {
   return `${proto}://${host}${path}`;
 }
 
-// 页面地址后加 .md 就是该页的 Markdown 原文，由 proxy.ts 重写到 content.md。
+// 页面地址后加 .md 就是该页的 Markdown 原文，由 proxy.ts 直接返回。
+// 根页面没有路径可加后缀，它的原文地址定为 /index.md。
 export function getPageSourceUrl(page: { url: string }) {
-  return `${page.url}.md`;
+  return page.url === '/' ? '/index.md' : `${page.url}.md`;
 }
 
 const getContentUrl = createGetUrl(docsContentRoute);

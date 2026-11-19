@@ -7,7 +7,7 @@ type Props = {
   locale?: string;
 };
 
-// 首页上的「供 AI 代理」入口：默认收起，展开后给出一段可直接粘贴给代理的文字。
+// 公开入口页上的「让 AI 代理阅读」入口：默认收起，展开后给出一段可直接粘贴给代理的文字。
 export function AgentEntries({ siteName, locale = 'zh-CN' }: Props) {
   const zh = locale.startsWith('zh');
   const [open, setOpen] = useState(false);
@@ -17,13 +17,13 @@ export function AgentEntries({ siteName, locale = 'zh-CN' }: Props) {
 
   const text = zh
     ? {
-        trigger: '供 AI 代理',
+        trigger: '让 AI 代理阅读',
         hint: '把这段文字连同链接一起发给 AI 代理。',
         copy: '复制',
         copied: '已复制',
       }
     : {
-        trigger: 'For AI agents',
+        trigger: 'Read with an AI agent',
         hint: 'Send this text together with the links to an AI agent.',
         copy: 'Copy',
         copied: 'Copied',
@@ -81,7 +81,7 @@ export function AgentEntries({ siteName, locale = 'zh-CN' }: Props) {
   }
 
   return (
-    <div ref={container} className="inline-block">
+    <div ref={container} className="relative inline-block">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
@@ -109,7 +109,7 @@ export function AgentEntries({ siteName, locale = 'zh-CN' }: Props) {
       {open && (
         <div
           id="agent-entries"
-          className="absolute left-1/2 top-full z-20 mt-2 w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 rounded-lg border bg-fd-background p-4 text-left shadow-lg"
+          className="absolute left-0 top-full z-20 mt-2 w-[min(28rem,calc(100vw-2rem))] rounded-lg border bg-fd-background p-4 text-left shadow-lg"
         >
           <div className="mb-2 flex items-baseline justify-between gap-2">
             <p className="text-xs text-fd-muted-foreground">{text.hint}</p>

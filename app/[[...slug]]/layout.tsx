@@ -5,7 +5,7 @@ import { categoryOptions, fixedLinks } from '@/lib/docs-nav';
 import { CategorySwitcher } from '@/components/category-switcher';
 import { SidebarFooter } from '@/components/sidebar-footer';
 
-export default function Layout({ children }: LayoutProps<'/docs'>) {
+export default function Layout({ children }: LayoutProps<'/[[...slug]]'>) {
   const tree = source.getPageTree();
   const base = baseOptions();
 

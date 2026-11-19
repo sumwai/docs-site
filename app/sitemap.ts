@@ -9,7 +9,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     source.getPages().map(async (page) => ({
       url: await getRequestUrl(page.url),
       changeFrequency: 'weekly' as const,
-      priority: page.url === '/docs' ? 1 : 0.7,
+      priority: page.url === '/' ? 1 : 0.7,
     })),
   );
 

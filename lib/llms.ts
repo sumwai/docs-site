@@ -5,8 +5,10 @@ import { getRequestUrl } from './shared';
 // 索引里的链接直接指向每页的 Markdown 原文：Agent 读到 llms.txt 之后不需要再猜
 // 页面地址后面加什么后缀，也不必请求 HTML 再解析。
 function toMarkdownLinks(index: string) {
-  return index.replace(/\]\((\/docs[^)\s]*)\)/g, (_match, path: string) => {
+  return index.replace(/\]\((\/[^)\s]*)\)/g, (_match, path: string) => {
     if (path.endsWith('.md')) return `](${path})`;
+    // 根页面的原文是 /index.md；直接在 / 后面接 .md 会变成隐藏文件 /.md。
+    if (path === '/') return '](/index.md)';
     return `](${path}.md)`;
   });
 }

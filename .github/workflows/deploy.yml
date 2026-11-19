@@ -20,7 +20,6 @@ jobs:
     timeout-minutes: 20
     env:
       DOCS_SITE_NAME: larkax
-      DOCS_SITE_TAGLINE: 默认入口 larkax.com，也可以自部署
       DOCS_SITE_DESCRIPTION: 客户端把 Claude Code、Codex、OpenAI、Anthropic 与 Gemini SDK 指向同一个地址；八条报文协议可进可出，其中四条对话协议之间可以互相转换。默认使用 larkax.com，也可以在自己的主机上部署同一套网关。
       DOCS_SITE_LOCALE: zh-CN
       DOCS_SITE_GITHUB: https://github.com/sumwai/lax
@@ -50,15 +49,16 @@ jobs:
           if [ -d .next-build ]; then find .next-build -mindepth 1 -delete; fi
           node scripts/fetch-content.mjs
           npm run build
-          # 文档入口没有独立页面，落在第一个分类的首页上；没有该分类时退回 public。
-          entry=.next-build/server/app/docs/public.html
-          # 分类首页的标题是「页面名 | 站点名」，站点名不一定在开头，检查包含即可。
+          # 域名本身就是文档站，根地址直接是「公开入口」页。
+          entry=.next-build/server/app/index.html
+          # 页面标题是「页面名 | 站点名」，站点名不一定在开头，检查包含即可。
           grep -q '<title>[^<]*larkax' "$entry"
-          if grep -R -q --include='*.html' '/docs/hosted' .next-build/server/app; then
-            echo '构建产物仍包含已下线的 /docs/hosted 链接' >&2
+          # 文档地址搬到了根路径，产物里不应再有 /docs 开头的站内链接。
+          if grep -R -q --include='*.html' -E 'href="/docs/|/docs/hosted' .next-build/server/app; then
+            echo '构建产物仍包含旧的 /docs 链接' >&2
             exit 1
           fi
-          grep -q 'href="/docs/public/clients' "$entry"
+          grep -q 'href="/quickstart"' "$entry"
 
       - name: Pack standalone output
         run: |

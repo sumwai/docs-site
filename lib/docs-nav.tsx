@@ -95,9 +95,3 @@ export function fixedLinks(tree: PageTree.Root): LinkItemType[] {
     ];
   });
 }
-
-/** 第一个分类的地址，用作文档入口的落点。没有分类时返回 undefined。 */
-export function firstCategoryUrl(tree: PageTree.Root): string | undefined {
-  const [first] = rootFolders(tree).categories;
-  return first ? folderUrl(first) : undefined;
-}

@@ -13,17 +13,16 @@ npm run start      # 以生产模式启动
 
 ## 站点品牌
 
-品牌、首页文案与语言由环境变量传入，默认值在根目录 `site.config.ts`；空值或未设置都退回默认值。
+品牌与语言由环境变量传入，默认值在根目录 `site.config.ts`；空值或未设置都退回默认值。
 
 | 变量 | 作用 |
 | --- | --- |
 | `DOCS_SITE_NAME` | 浏览器标题、导航标题、OG 图、`llms.txt` 与 `robots.txt` 头部 |
-| `DOCS_SITE_TAGLINE` | 首页标题上方的小字 |
-| `DOCS_SITE_DESCRIPTION` | 首页正文与 meta description |
+| `DOCS_SITE_DESCRIPTION` | meta description |
 | `DOCS_SITE_LOCALE` | `<html lang>` 与内置 UI 文案；以 `zh` 开头时启用中文覆盖，其余用 Fumadocs 默认英文 |
 | `DOCS_SITE_GITHUB` | 侧边栏底部的仓库地址；留空时只显示主题切换 |
 
-首页、导航、站点地图与 Agent 入口都读这些值，不在页面里写死站点名。`DOCS_SITE_NAME`、`DOCS_SITE_TAGLINE`、`DOCS_SITE_DESCRIPTION` 在构建时决定静态页面的文案，`robots.txt` 与 `llms.txt` 按请求生成，运行阶段还会再读一次，所以构建与运行要给同一组值。
+导航、站点地图与 Agent 入口都读这些值，不在页面里写死站点名。`DOCS_SITE_NAME`、`DOCS_SITE_DESCRIPTION` 在构建时决定静态页面的文案，`robots.txt` 与 `llms.txt` 按请求生成，运行阶段还会再读一次，所以构建与运行要给同一组值。
 
 内容仓库只需要提供这几个值，不必复制 `site.config.ts`。
 
@@ -39,7 +38,13 @@ npm run start      # 以生产模式启动
 
 只想让某个目录在侧边栏里独占一屏、但不进切换器时，把 `root` 写成任意字符串，例如 `"root": "aux"`。这类目录以链接形式固定在页面树上方，切换器仍然只列真正的分类。当前页面不属于任何分类时，切换器显示「选择分类」占位，随时可以切回分类。
 
-内容里没有顶层 `content/docs/index.mdx` 时，`/docs` 会跳转到第一个分类的首页，读者不会停在空白入口；首页的「阅读文档」按钮也指向同一个地址。
+### 地址
+
+文档页挂在站点根路径，内容目录的第一层只用于分组侧边栏，不进地址：`content/docs/public/quickstart.mdx` 对应 `/quickstart`，`content/docs/self-hosted/install.mdx` 对应 `/self-hosted/install`。`public/` 下是站点的主文档，前缀被去掉；其余目录保留目录名。
+
+分类首页成为目录地址本身：`public/index.mdx` 就是站点根地址 `/`，其它分类的 `index.mdx` 是其目录地址。根地址显示的就是这个页面，所以内容仓库需要在 `public/` 放一个 `index.mdx` 作为站点入口；直接放在 `content/docs/index.mdx` 也可以。
+
+站内链接写页面地址，不带 `/docs` 前缀，例如 `/quickstart`、`/self-hosted/route/policies#冷却与失败转移`。旧的 `/docs/...` 地址由 `next.config.mjs` 永久跳转到新地址。
 
 正文可用标准 Markdown、GFM 表格，以及 Fumadocs 内置的 `<Cards>` / `<Card>` 与代码块高亮标记（`// [!code ++]`、`// [!code --]`）。内容不能 `import` 站点源码里的模块。
 
@@ -91,7 +96,7 @@ npm run build      # 普通构建
 
 - 服务有 `MainPID`；
 - 监听端口的进程属于该 unit；
-- `/docs` 返回的 HTML 包含 `<title>larkax`。
+- `/` 返回的 HTML 包含 `<title>larkax`。
 
 目标机 systemd unit 使用 standalone 入口：
 
@@ -110,7 +115,6 @@ Environment=HOSTNAME=127.0.0.1
 Environment=PORT=3100
 Environment=NEXT_PUBLIC_SITE_URL=https://docs.larkax.com
 Environment=DOCS_SITE_NAME=larkax
-Environment=DOCS_SITE_TAGLINE=默认入口 larkax.com，也可以自部署
 Environment="DOCS_SITE_DESCRIPTION=客户端把 Claude Code、Codex、OpenAI、Anthropic 与 Gemini SDK 指向同一个地址；八条报文协议可进可出，其中四条对话协议之间可以互相转换。默认使用 larkax.com，也可以在自己的主机上部署同一套网关。"
 Environment=DOCS_SITE_LOCALE=zh-CN
 Environment=DOCS_SITE_GITHUB=https://github.com/sumwai/lax
@@ -140,14 +144,14 @@ GitHub 仓库需要配置三个 Actions secret：
 
 ### 内容更新
 
-页面在构建时预渲染，内容仓库推新提交后必须重新构建。workflow 在构建前清理 `.next-build`，并在构建后检查产物里没有已下线的 `/docs/hosted` 链接；每次发布使用唯一的 release 目录，避免旧文件混进新版本。两种触发方式：
+页面在构建时预渲染，内容仓库推新提交后必须重新构建。workflow 在构建前清理 `.next-build`，并在构建后检查产物里没有 `/docs/...` 这种旧地址的站内链接；每次发布使用唯一的 release 目录，避免旧文件混进新版本。两种触发方式：
 
 - 内容仓库 push 后向站点仓库发 `repository_dispatch`，事件类型为 `content-updated`；
 - 手动触发站点仓库的 `deploy docs` workflow。
 
 固定版本时把 `DOCS_CONTENT_REF` 写成 tag；正式站点不要长期跟随 `main`。
 
-旧地址由 `next.config.mjs` 做永久跳转：`/docs/clients/*` 到 `/docs/public/clients/*`（`auth`、`troubleshooting` 到 `/docs/public/` 下的同级页面），`/docs/concepts/*` 到 `/docs/self-hosted/concepts/*`，`/docs/reference/cli` 到 `/docs/self-hosted/cli`，`/docs/reference/faq` 到 `/docs/self-hosted/faq`，更早的 `/docs/hosted/*` 与 `/docs/start/clients` 到新的 `/docs/public/*` 地址。
+旧地址由 `next.config.mjs` 做永久跳转：`/docs/public/*` 去掉 `public` 落到根路径（`/docs/public` 落到 `/`），其余 `/docs/*` 整体下移一层（`/docs/self-hosted/install` 到 `/self-hosted/install`）。更早的 `/docs/hosted/*`、`/docs/concepts/*`、`/docs/clients/*`、`/docs/reference/cli`、`/docs/reference/faq`、`/docs/start/clients` 也都指到新地址。
 
 ## Agent 入口
 
@@ -155,7 +159,7 @@ GitHub 仓库需要配置三个 Actions secret：
 | --- | --- |
 | `/llms.txt` | 文档索引，链接指向每页 Markdown 原文 |
 | `/llms-full.txt` | 全部页面合并 |
-| `<页面>.md` | 单页 Markdown 原文 |
+| `<页面>.md` | 单页 Markdown 原文；根页面的原文是 `/index.md` |
 | `Accept: text/markdown` | 同一地址返回 Markdown |
 | `/sitemap.xml`、`/robots.txt` | 爬虫入口 |
 
@@ -168,26 +172,26 @@ GitHub 仓库需要配置三个 Actions secret：
 | `site.config.ts` | 品牌与语言的默认值，可被 `DOCS_SITE_*` 环境变量覆盖 |
 | `content.example/docs/` | 示例内容，结构等同于一个内容仓库 |
 | `content/docs/` | 构建用的内容，由同步脚本生成，不入库 |
-| `app/(home)/page.tsx` | 首页 |
-| `app/docs/[[...slug]]/page.tsx` | 文档页渲染 |
-| `app/docs/layout.tsx` | 侧边栏与页面布局 |
+| `app/[[...slug]]/page.tsx` | 文档页渲染，根地址也在内 |
+| `app/[[...slug]]/layout.tsx` | 侧边栏与页面布局 |
+| `components/agent-entries.tsx` | 公开入口页顶部的「让 AI 代理阅读」入口 |
 | `app/api/search/route.ts` | 站内搜索 |
 | `app/llms.txt`、`app/llms-full.txt` | Agent 索引与全文 |
 | `app/llms.mdx/docs/[[...slug]]` | 每页 Markdown 原文 |
 | `app/robots.txt`、`app/sitemap.ts` | 爬取说明与页面清单 |
 | `app/og/docs/[...slug]` | OG 图 |
-| `proxy.ts` | Markdown 缩写与 `Accept` 协商 |
+| `proxy.ts` | `.md` 原文与 `Accept` 协商 |
 | `lib/source.ts` | 内容源与 Fumadocs 加载器 |
-| `lib/docs-nav.tsx` | 从页面树整理分类、固定入口与文档入口地址 |
+| `lib/docs-nav.tsx` | 从页面树整理分类与固定入口 |
 | `components/category-switcher.tsx` | 侧边栏顶部的分类切换器 |
-| `lib/shared.ts` | 站点名、路由前缀、绝对地址 |
+| `lib/shared.ts` | 站点名、Markdown 原文地址、绝对地址 |
 | `scripts/fetch-content.mjs` | 构建前同步内容 |
 | `.github/workflows/deploy.yml` | GitHub Actions 构建与 SSH 发布 |
 | `scripts/deploy.sh` | 上传产物、切换软链、重启与回滚 |
 
 ## 换一个项目
 
-1. 用 `DOCS_SITE_NAME`、`DOCS_SITE_TAGLINE`、`DOCS_SITE_DESCRIPTION`、`DOCS_SITE_LOCALE`、`DOCS_SITE_GITHUB` 给品牌、语言与仓库地址，或在 `site.config.ts` 改默认值。
+1. 用 `DOCS_SITE_NAME`、`DOCS_SITE_DESCRIPTION`、`DOCS_SITE_LOCALE`、`DOCS_SITE_GITHUB` 给品牌、语言与仓库地址，或在 `site.config.ts` 改默认值。
 2. 建一个只放内容的仓库：`content/docs` 下放 `meta.json` 与页面，不带 `app/`、依赖与样式。构建时用 `DOCS_CONTENT_DIR` 指本地 checkout，或 `DOCS_CONTENT_REPO` 指向远端仓库。
 3. 需要改 UI 文案时改 `app/layout.tsx` 的 `zhTranslations`；其它语言用 Fumadocs 默认文案。
 4. 字体栈与正文排版在 `app/global.css`。

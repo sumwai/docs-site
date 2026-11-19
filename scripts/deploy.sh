@@ -8,7 +8,7 @@ set -euo pipefail
 
 APP_DIR=${APP_DIR:-/home/sumwai/docs-site}
 SERVICE=${SERVICE:-docs-site}
-HEALTH_URL=${HEALTH_URL:-http://127.0.0.1:3100/docs}
+HEALTH_URL=${HEALTH_URL:-http://127.0.0.1:3100/}
 HEALTH_PREFIX=${HEALTH_PREFIX:-}
 SSH_HOST=${SSH_HOST:?SSH_HOST 必填，例如 aliyun-hongkong}
 ARTIFACT=${1:?用法：scripts/deploy.sh <产物 tar.gz>}
@@ -87,7 +87,7 @@ for _ in $(seq 1 30); do
     sleep 1
     continue
   fi
-  # -L：入口地址可能是跳到第一个分类的 307，跟着走才算真的读到了页面。
+  # -L：万一入口还有跳转，跟着走才算真的读到了页面。
   body=$(curl -fsSL "$health_url" 2>/dev/null || true)
   if [[ -n "$body" && ( -z "$health_prefix" || "$body" == *"$health_prefix"* ) ]]; then
     ok=true
