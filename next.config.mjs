@@ -12,6 +12,10 @@ const config = {
   // 开发服务器既可能从 localhost 访问，也可能从 127.0.0.1 访问，
   // 不加这一条时按 IP 访问会拦掉按需加载的 chunk（搜索对话框就是这种）。
   allowedDevOrigins: ['127.0.0.1'],
+  experimental: {
+    // 记录升级路径：本项目的 Next.js 版本只跟随安全公告升级，不追新。
+    agentUpgrade: 'security',
+  },
   // 分类按读者重排后，旧地址与更早的 hosted 地址都保留永久跳转，避免外部书签落到 404。
   async redirects() {
     return [
